@@ -207,7 +207,10 @@ TapeView + StatusPanel + TransitionTable se actualizan
 ACCEPTED / REJECTED → mensaje pedagógico en StatusPanel
 ```
 
-## Despliegue
+## Despliegue en Render
 
-El frontend se publica como **Static Site** (carpeta `dist` después de `npm run build`).  
-Guía completa: [DEPLOY_RENDER.md](../DEPLOY_RENDER.md).
+1. https://dashboard.render.com → **New** → **Static Site** → repo **Maquina-Turing-Front**
+2. Build: `npm install && npm run build` · Publish: `dist`
+3. Variable **`VITE_API_URL`** = `https://TU-API.onrender.com/api/v1` (despliega la API antes)
+
+Ver `render.yaml` en este repo.
