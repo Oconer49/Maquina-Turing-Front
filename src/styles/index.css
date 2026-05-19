@@ -1,0 +1,611 @@
+:root {
+  --bg: #0f1419;
+  --surface: #1a2332;
+  --border: #2d3a4f;
+  --text: #e7ecf3;
+  --muted: #8b9cb3;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --warning: #eab308;
+  --head: #f59e0b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.app-header {
+  margin-bottom: 1.5rem;
+}
+
+.app-header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+.app-header p {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.app-header__course {
+  margin-top: 0.35rem !important;
+}
+
+.app-header__subject {
+  font-size: 0.88rem;
+  opacity: 0.9;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 180px;
+}
+
+.field label {
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.field select,
+.field input,
+.field textarea {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.field textarea {
+  min-height: 120px;
+  font-family: 'Consolas', monospace;
+  font-size: 0.85rem;
+}
+
+.btn {
+  padding: 0.55rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.btn-secondary {
+  background: var(--border);
+  color: var(--text);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.status-panel {
+  margin-bottom: 1rem;
+}
+
+.status-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg);
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.result-message {
+  margin: 0.75rem 0 0;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.result-message.status-ACCEPTED {
+  border-color: var(--success);
+  color: #86efac;
+}
+
+.result-message.status-REJECTED {
+  border-color: var(--danger);
+  color: #fca5a5;
+}
+
+.result-message.status-STEP_LIMIT {
+  border-color: var(--warning);
+  color: #fde047;
+}
+
+.status-bar .label {
+  color: var(--muted);
+}
+
+.status-ACCEPTED { color: var(--success); font-weight: 600; }
+.status-REJECTED { color: var(--danger); font-weight: 600; }
+.status-STEP_LIMIT { color: var(--warning); font-weight: 600; }
+.status-RUNNING { color: var(--accent); font-weight: 600; }
+
+.tape-container {
+  overflow-x: auto;
+  padding: 2rem 1rem 1rem;
+  background: var(--bg);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.tape-row {
+  display: flex;
+  gap: 4px;
+  align-items: flex-end;
+  min-width: min-content;
+}
+
+.tape-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 44px;
+}
+
+.tape-cell .index {
+  font-size: 0.65rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.tape-cell .symbol {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  font-family: 'Consolas', monospace;
+  font-size: 1.1rem;
+  background: var(--surface);
+}
+
+.tape-cell.head .symbol {
+  border-color: var(--head);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.35);
+}
+
+.tape-cell.head .arrow {
+  color: var(--head);
+  font-size: 1.2rem;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: start;
+  --scroll-sync-h: clamp(280px, 40vh, 420px);
+}
+
+.grid-2 > .panel {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+}
+
+.grid-2 > .panel > h3 {
+  flex-shrink: 0;
+  margin-bottom: 0.75rem;
+}
+
+/* Misma altura de scroll: zona de la tabla δ = historial de pasos */
+.grid-2 .scroll-sync {
+  height: var(--scroll-sync-h);
+  overflow: auto;
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.table-wrap:not(.delta-matrix-wrap) {
+  overflow-x: auto;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+th, td {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+
+th {
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.history {
+  font-size: 0.8rem;
+  font-family: Consolas, monospace;
+}
+
+.history-item {
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.history-item strong {
+  color: var(--text);
+}
+
+.error-banner {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid var(--danger);
+  color: #fca5a5;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.speed-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.speed-control input {
+  width: 120px;
+}
+
+.rich-text {
+  line-height: 1.6;
+}
+
+.rich-text .katex {
+  font-size: 1.05em;
+  color: var(--text);
+}
+
+.math-inline {
+  display: inline-block;
+  margin: 0 0.1em;
+  vertical-align: middle;
+}
+
+.machine-description {
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.input-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.input-alphabet {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: normal;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.input-mono {
+  font-family: 'Consolas', 'Cascadia Mono', monospace;
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+}
+
+.alphabet-chips {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.alphabet-chip {
+  display: inline-flex;
+  padding: 0.1rem 0.25rem;
+  border-radius: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.tape-symbol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Cambria Math', 'Times New Roman', serif;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.tape-symbol--md {
+  font-size: 1.35rem;
+  min-width: 1.25rem;
+}
+
+.tape-symbol--sm {
+  font-size: 1rem;
+  min-width: 1rem;
+}
+
+.sym-blank {
+  color: #94a3b8;
+  font-size: 1.5rem;
+}
+
+.sym-bit {
+  color: #60a5fa;
+}
+
+.sym-letter {
+  color: var(--text);
+  font-style: normal;
+}
+
+.sym-mark {
+  color: #f472b6;
+  font-weight: 700;
+}
+
+.sym-other {
+  color: var(--text);
+}
+
+.tape-cell .symbol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+}
+
+.transition-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.machine-definition {
+  padding: 0.75rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.machine-definition__line {
+  margin: 0.2rem 0;
+}
+
+.machine-definition__line .katex {
+  font-size: 1em;
+}
+
+.delta-matrix-wrap:not(.scroll-sync) {
+  overflow: auto;
+  max-height: min(420px, 55vh);
+}
+
+.delta-matrix {
+  width: auto;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.9rem;
+}
+
+.delta-matrix th,
+.delta-matrix td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  text-align: center;
+  vertical-align: middle;
+  background: var(--surface);
+}
+
+/* Solo la fila de encabezado (símbolos Γ) queda fija al hacer scroll vertical */
+.delta-matrix thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface);
+  box-shadow: 0 1px 0 var(--border);
+}
+
+.delta-matrix__corner {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 4;
+  min-width: 3rem;
+  box-shadow: 1px 1px 0 var(--border);
+}
+
+.delta-matrix__col-head {
+  font-weight: 600;
+  min-width: 4.5rem;
+}
+
+/* Estados (columna izq.): fijos al scroll horizontal, NO al vertical */
+.delta-matrix__row-head {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  top: auto;
+  text-align: left;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 1px 0 0 var(--border);
+}
+
+.delta-matrix__row-head .state-tags {
+  display: block;
+  margin-top: 0.15rem;
+}
+
+.state-tag {
+  display: inline-block;
+  margin-right: 0.25rem;
+  padding: 0.05rem 0.35rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: system-ui, sans-serif;
+}
+
+.delta-matrix__cell {
+  min-width: 5.5rem;
+}
+
+.delta-matrix__cell .katex {
+  font-size: 0.95em;
+}
+
+.delta-matrix__row--active .delta-matrix__cell {
+  background: #2a3548;
+  box-shadow: inset 0 0 0 1px rgba(249, 115, 22, 0.45);
+}
+
+.delta-matrix__row--active .delta-matrix__row-head {
+  background: #2a3548;
+  box-shadow: inset 0 0 0 1px rgba(249, 115, 22, 0.45), 1px 0 0 var(--border);
+}
+
+.empty-set .katex {
+  color: var(--muted);
+  font-size: 1.1em;
+}
+
+.table-caption {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.delta-list-details {
+  font-size: 0.85rem;
+}
+
+.delta-list-details summary {
+  cursor: pointer;
+  color: var(--muted);
+  user-select: none;
+}
+
+.delta-list-details summary:hover {
+  color: var(--text);
+}
+
+.delta-list {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+  list-style: none;
+}
+
+.delta-list li {
+  margin: 0.35rem 0;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.delta-list li:last-child {
+  border-bottom: none;
+}
+
+.delta-line {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.state-name {
+  font-family: 'Consolas', monospace;
+}
+
+.result-message .katex {
+  font-size: 1em;
+}
