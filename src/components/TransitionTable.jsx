@@ -2,9 +2,6 @@ import RichText from './RichText';
 import {
   buildTransitionMatrix,
   formatDeltaCell,
-  formatDeltaTransition,
-  formatStateSet,
-  formatSymbolSet,
   stateToLatex,
   symbolToLatex,
 } from '../utils/formalNotation';
@@ -46,33 +43,7 @@ function StateRowLabel({ state, machine }) {
   );
 }
 
-/** Bloque M = (Q, Σ, Γ, δ, q₀, B, F) como en el cuaderno. */
-function MachineDefinition({ machine }) {
-  if (!machine) return null;
-  const blank = machine.blank ?? '_';
-
-  const lines = [
-    `$M = (Q, \\Sigma, \\Gamma, \\delta, q_0, B, F)$`,
-    `$Q = ${formatStateSet(machine.states)}$`,
-    `$\\Sigma = ${formatSymbolSet(machine.input_alphabet, blank)}$`,
-    `$\\Gamma = ${formatSymbolSet(machine.tape_alphabet, blank)}$`,
-    `$q_0 = ${stateToLatex(machine.initial_state)}$`,
-    `$B = ${symbolToLatex(blank, blank)}$`,
-    `$F = ${formatStateSet(machine.accept_states)}$`,
-  ];
-
-  return (
-    <Box className="machine-definition">
-      {lines.map((line, i) => (
-        <Box key={i} className="machine-definition__line">
-          <RichText text={line} />
-        </Box>
-      ))}
-    </Box>
-  );
-}
-
-/** Tabla matriz δ + lista de transiciones; resalta la fila del estado actual. */
+/** Matriz δ: filas = estados, columnas = símbolos de Γ. */
 export default function TransitionTable({ machine, currentState }) {
   const matrix = buildTransitionMatrix(machine);
 
@@ -81,13 +52,10 @@ export default function TransitionTable({ machine, currentState }) {
   }
 
   const { states, symbols, cells, blank } = matrix;
-  const transitions = machine.transitions ?? [];
 
   return (
     <Box className="transition-panel">
-      <MachineDefinition machine={machine} />
-
-      <Box className="table-wrap delta-matrix-wrap scroll-sync">
+      <Box className="table-wrap delta-matrix-wrap">
         <table className="delta-matrix">
           <thead>
             <tr>
@@ -113,8 +81,14 @@ export default function TransitionTable({ machine, currentState }) {
                       {t ? (
                         <RichText text={formatDeltaCell(t, blank)} />
                       ) : (
-                        <span className="empty-set" title="Sin transición">
-                          <RichText text="$\\emptyset$" />
+                        <span
+                          className="empty-set"
+                          title="Sin transición definida para este estado y símbolo"
+                          aria-label="Sin transición"
+                        >
+                          <span className="empty-set-symbol" aria-hidden="true">
+                            ∅
+                          </span>
                         </span>
                       )}
                     </td>
@@ -125,22 +99,11 @@ export default function TransitionTable({ machine, currentState }) {
           </tbody>
         </table>
         <p className="table-caption">
-          <RichText text="Tabla de $\\delta$: filas = estados $q_i$, columnas = símbolos de $\\Gamma$" />
+          <RichText text="Filas = estados $q_i$ · Columnas = símbolos $\\Gamma$ · " />
+          <span className="empty-set-symbol empty-set-symbol--caption">∅</span>
+          <RichText text=" = celda sin regla" />
         </p>
       </Box>
-
-      <details className="delta-list-details">
-        <summary>
-          <RichText text="Función $\\delta$ (lista de transiciones)" />
-        </summary>
-        <ul className="delta-list">
-          {transitions.map((t, i) => (
-            <li key={i}>
-              <RichText text={formatDeltaTransition(t, blank)} />
-            </li>
-          ))}
-        </ul>
-      </details>
     </Box>
   );
 }

@@ -9,20 +9,20 @@ export function stateToLatex(state) {
   return `q_{\\text{${body.replace(/_/g, '\\_')}}}`;
 }
 
-/** Convierte un símbolo de cinta a LaTeX (⊔ para blanco). */
+/** Convierte un símbolo de cinta a LaTeX (· para blanco, igual que en la cinta). */
 export function symbolToLatex(symbol, blank = '_') {
-  if (symbol === blank || symbol === '_') return '\\sqcup';
+  if (symbol === blank || symbol === '_') return '\\text{·}';
   if (symbol === '0' || symbol === '1') return symbol;
   if (/^[a-z]$/i.test(symbol)) return symbol;
   return `\\text{${String(symbol).replace(/_/g, '\\_')}}`;
 }
 
-/** Arma la cadena δ(q,a) → (q',b,R) para historial y panel. */
+/** Arma la cadena δ(q,a) = (q',b,R) para historial y panel (sin flechas). */
 export function formatDeltaTransition(t, blank = '_') {
   const from = t.from ?? t.from_state;
   const read = symbolToLatex(t.read, blank);
   const write = symbolToLatex(t.write, blank);
-  return `$\\delta(${stateToLatex(from)}, ${read}) \\rightarrow (${stateToLatex(t.to)}, ${write}, ${t.move})$`;
+  return `$\\delta(${stateToLatex(from)}, ${read}) = (${stateToLatex(t.to)}, ${write}, ${t.move})$`;
 }
 
 /** Formato compacto (q',b,R) para una celda de la tabla δ. */

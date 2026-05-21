@@ -2,6 +2,8 @@
 
 Interfaz web en **React 18 + Vite** que permite elegir una máquina, ingresar una cadena, simular paso a paso (o en automático) y ver la cinta, la tabla δ y el historial con notación matemática (KaTeX).
 
+**Documentación completa:** [DOCUMENTACION_TECNICA.md](../DOCUMENTACION_TECNICA.md) — secciones 17 (implementación frontend), 16 (API), 19 (casos de uso) y 24 (despliegue en Vercel).
+
 ## Requisitos
 
 | Herramienta | Versión |
@@ -207,10 +209,10 @@ TapeView + StatusPanel + TransitionTable se actualizan
 ACCEPTED / REJECTED → mensaje pedagógico en StatusPanel
 ```
 
-## Despliegue en Render
+## Despliegue en Vercel (producción)
 
-1. https://dashboard.render.com → **New** → **Static Site** → repo **Maquina-Turing-Front**
-2. Build: `npm install && npm run build` · Publish: `dist`
-3. Variable **`VITE_API_URL`** = `https://TU-API.onrender.com/api/v1` (despliega la API antes)
+1. https://vercel.com → importar repo **Maquina-Turing-Front**
+2. Framework preset: **Vite**
+3. Variable **`VITE_API_URL`** = `https://maquina-turing-back.onrender.com/api/v1`
 
-Ver `render.yaml` en este repo.
+App en producción: https://maquina-turing-front.vercel.app

@@ -1,5 +1,5 @@
 const SYMBOLS = {
-  _: { glyph: '⊔', title: 'Blanco (B)', className: 'sym-blank' },
+  _: { glyph: '·', title: 'Blanco (B)', className: 'sym-blank' },
   '0': { glyph: '0', title: 'Cero', className: 'sym-bit' },
   '1': { glyph: '1', title: 'Uno', className: 'sym-bit' },
   a: { glyph: 'a', title: 'a', className: 'sym-letter' },
@@ -8,13 +8,16 @@ const SYMBOLS = {
   Y: { glyph: 'Y', title: 'Marca Y', className: 'sym-mark' },
 };
 
-/** Muestra un símbolo de cinta con estilo (⊔, 0, 1, a, marcas X/Y). */
-export default function TapeSymbol({ symbol, size = 'md' }) {
-  const meta = SYMBOLS[symbol] ?? {
-    glyph: symbol,
-    title: symbol,
-    className: 'sym-other',
-  };
+/** Muestra un símbolo de cinta con estilo (· blanco, 0, 1, a, marcas X/Y). */
+export default function TapeSymbol({ symbol, size = 'md', isBlank = false }) {
+  const meta =
+    isBlank || symbol === '_'
+      ? SYMBOLS._
+      : (SYMBOLS[symbol] ?? {
+          glyph: symbol,
+          title: symbol,
+          className: 'sym-other',
+        });
 
   return (
     <span
