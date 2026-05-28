@@ -184,11 +184,15 @@ export default function SimulationPage() {
   }, []);
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>Simulador de Máquinas de Turing</h1>
+    <div className="app app--polished">
+      <header className="app-header app-header--hero">
+        <p className="app-header__eyebrow">Gramática y lenguajes · Teoría de la computación</p>
+        <h1 className="app-header__title">
+          <span className="app-header__title-line">Simulador de</span>
+          <span className="app-header__title-highlight">Máquinas de Turing</span>
+        </h1>
         <p className="app-header__course">
-          Gramática y lenguajes — Brahyan Uribe Osorio / Santiago Gonzalez Bedoya
+          Brahyan Uribe Osorio · Santiago Gonzalez Bedoya
         </p>
       </header>
 
