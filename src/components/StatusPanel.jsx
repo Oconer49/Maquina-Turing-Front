@@ -17,7 +17,14 @@ function resultLabel(status, isActive) {
 const Box = 'div';
 
 /** Estado de la simulación: Q, paso, resultado y última regla δ aplicada. */
-export default function StatusPanel({ snapshot, isRunning = false, isStepping = false, blank = '_' }) {
+export default function StatusPanel({
+  snapshot,
+  isRunning = false,
+  isStepping = false,
+  blank = '_',
+  layout = 'row',
+  showResultMessage = true,
+}) {
   if (!snapshot) return null;
   const { current_state, step, status, applied_transition, result_message } = snapshot;
   const isFinal = status !== 'RUNNING';
@@ -30,8 +37,8 @@ export default function StatusPanel({ snapshot, isRunning = false, isStepping = 
         : 'Explicación';
 
   return (
-    <Box className="status-panel">
-      <div className="status-grid">
+    <Box className={`status-panel ${layout === 'stacked' ? 'status-panel--stacked' : ''}`}>
+      <div className={`status-grid ${layout === 'stacked' ? 'status-grid--stacked' : ''}`}>
         <div className="status-card">
           <span className="status-card__label">
             <RichText text="Estado actual ($Q$)" />
@@ -67,7 +74,7 @@ export default function StatusPanel({ snapshot, isRunning = false, isStepping = 
         </div>
       )}
 
-      {isFinal && result_message && (
+      {showResultMessage && isFinal && result_message && (
         <Box className={`result-message status-${status}`}>
           <span className="result-message__title">{resultTitle}</span>
           <div className="result-message__body">

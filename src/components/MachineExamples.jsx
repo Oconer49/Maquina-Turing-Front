@@ -1,11 +1,12 @@
 import RichText from './RichText';
 
-/** Cinco ejemplos de cadena por máquina; al pulsar carga la entrada. */
-export default function MachineExamples({ examples, onSelect, disabled }) {  if (!examples?.length) return null;
+/** Ejemplos de cadena por máquina; al pulsar carga la entrada y arranca la simulación. */
+export default function MachineExamples({ examples, onSelect, disabled, compact = false }) {
+  if (!examples?.length) return null;
 
   return (
-    <div className="machine-examples">
-      <p className="machine-examples__title">Ejemplos de uso (pulse para probar)</p>
+    <div className={`machine-examples ${compact ? 'machine-examples--compact' : ''}`}>
+      <p className="machine-examples__title">Ejemplos (pulse para cargar)</p>
       <ul className="machine-examples__list">
         {examples.map((ex, i) => (
           <li key={`${ex.input}-${i}`}>
@@ -19,9 +20,12 @@ export default function MachineExamples({ examples, onSelect, disabled }) {  if 
               <code className="machine-examples__input">
                 {ex.input === '' ? <span className="math-greek">ε</span> : ex.input}
               </code>
-              <span className="machine-examples__label">
-                <RichText text={ex.label} />
-              </span>            </button>
+              {!compact && (
+                <span className="machine-examples__label">
+                  <RichText text={ex.label} />
+                </span>
+              )}
+            </button>
           </li>
         ))}
       </ul>

@@ -1,14 +1,12 @@
 ﻿import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import TapeSymbol from './TapeSymbol';
-import { buildDisplayTape } from '../utils/compactTape';
 
 const MOVE_LABELS = {
   L: { short: 'L', text: 'Izquierda', arrow: '←', className: 'move-left' },
   R: { short: 'R', text: 'Derecha', arrow: '→', className: 'move-right' },
 };
 
-const CELL_STRIDE = 41;
-const MIN_TAPE_CELLS = 21;
+const RANGE_PAD = 2;
 
 /** Cinta con celdas en blanco que llenan el ancho; la cadena sustituye blancos en 0…n-1. */
 export default function TapeView({
@@ -22,7 +20,8 @@ export default function TapeView({
 }) {
   const containerRef = useRef(null);
   const rowRef = useRef(null);
-  const [targetCellCount, setTargetCellCount] = useState(MIN_TAPE_CELLS);
+  const tapeMapRef = useRef(new Map());
+  const [range, setRange] = useState(() => ({ lo: 0, hi: 10 }));
   const prevSymbolsRef = useRef({});
   const [headCenterX, setHeadCenterX] = useState(0);
   const [headReady, setHeadReady] = useState(false);
@@ -31,27 +30,51 @@ export default function TapeView({
 
   const moveInfo = lastMove ? MOVE_LABELS[lastMove] : null;
 
-  const measureTargetCells = useCallback(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    const w = container.clientWidth;
-    const n = Math.max(MIN_TAPE_CELLS, Math.floor(w / CELL_STRIDE));
-    setTargetCellCount(n);
-  }, []);
+  useEffect(() => {
+    if (!active) return;
 
-  const displayTape = useMemo(
-    () =>
-      active
-        ? buildDisplayTape(tape, headIndex, blank, {
-            inputString,
-            previewInput: step === 0,
-            minEachSide: 10,
-            minTotal: MIN_TAPE_CELLS,
-            targetCount: targetCellCount,
-          })
-        : [],
-    [tape, headIndex, blank, inputString, step, targetCellCount, active],
-  );
+    const map = tapeMapRef.current;
+    map.clear();
+
+    if (step === 0 && inputString) {
+      for (let i = 0; i < inputString.length; i += 1) {
+        map.set(i, inputString[i]);
+      }
+    }
+
+    if (tape?.length) {
+      for (const c of tape) map.set(c.index, c.symbol);
+    }
+
+    const keys = [...map.keys()];
+    const lo = Math.min(headIndex, ...(keys.length ? keys : [0])) - RANGE_PAD;
+    const hi = Math.max(headIndex, ...(keys.length ? keys : [Math.max(0, inputString.length - 1)])) + RANGE_PAD;
+    setRange({ lo, hi });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, tape, step === 0 ? inputString : '', headIndex]);
+
+  useEffect(() => {
+    if (!active) return;
+    const map = tapeMapRef.current;
+    if (tape?.length) {
+      for (const c of tape) map.set(c.index, c.symbol);
+    }
+    setRange((prev) => {
+      const lo = Math.min(prev.lo, headIndex - RANGE_PAD);
+      const hi = Math.max(prev.hi, headIndex + RANGE_PAD);
+      return lo === prev.lo && hi === prev.hi ? prev : { lo, hi };
+    });
+  }, [active, tape, headIndex]);
+
+  const displayTape = useMemo(() => {
+    if (!active) return [];
+    const map = tapeMapRef.current;
+    const cells = [];
+    for (let i = range.lo; i <= range.hi; i += 1) {
+      cells.push({ index: i, symbol: map.has(i) ? map.get(i) : blank });
+    }
+    return cells;
+  }, [active, range.lo, range.hi, blank]);
 
   const updateHeadPosition = useCallback(() => {
     const row = rowRef.current;
@@ -62,17 +85,25 @@ export default function TapeView({
     setHeadReady(true);
   }, [headIndex]);
 
+  // Mantiene el cabezal visible sin forzarlo al centro (evita efecto "cabezal fijo").
   const scrollHeadIntoView = useCallback(() => {
     const container = containerRef.current;
     const cell = rowRef.current?.querySelector(`[data-tape-index="${headIndex}"]`);
     if (!container || !cell) return;
-    const target = cell.offsetLeft + cell.offsetWidth / 2 - container.clientWidth / 2;
-    container.scrollTo({ left: Math.max(0, target), behavior: 'smooth' });
-  }, [headIndex]);
+    const padding = 48;
+    const viewLeft = container.scrollLeft;
+    const viewRight = viewLeft + container.clientWidth;
+    const cellLeft = cell.offsetLeft;
+    const cellRight = cellLeft + cell.offsetWidth;
 
-  useLayoutEffect(() => {
-    measureTargetCells();
-  }, [measureTargetCells, active]);
+    if (cellLeft < viewLeft + padding) {
+      container.scrollTo({ left: Math.max(0, cellLeft - padding), behavior: 'smooth' });
+      return;
+    }
+    if (cellRight > viewRight - padding) {
+      container.scrollTo({ left: Math.max(0, cellRight - container.clientWidth + padding), behavior: 'smooth' });
+    }
+  }, [headIndex]);
 
   useLayoutEffect(() => {
     updateHeadPosition();
@@ -83,13 +114,12 @@ export default function TapeView({
     const container = containerRef.current;
     if (!container) return undefined;
     const ro = new ResizeObserver(() => {
-      measureTargetCells();
       updateHeadPosition();
       scrollHeadIntoView();
     });
     ro.observe(container);
     return () => ro.disconnect();
-  }, [measureTargetCells, updateHeadPosition, scrollHeadIntoView]);
+  }, [updateHeadPosition, scrollHeadIntoView]);
 
   useEffect(() => {
     if (!displayTape?.length || step === 0) return;
@@ -131,7 +161,7 @@ export default function TapeView({
         <span className="tape-direction-bar__end tape-direction-bar__end--left">
           ← L (izquierda)
         </span>
-        <span className="tape-direction-bar__center">La vista se desplaza con el cabezal ▼</span>
+        <span className="tape-direction-bar__center">El cabezal (▼) se mueve sobre la cinta</span>
         <span className="tape-direction-bar__end tape-direction-bar__end--right">
           R (derecha) →
         </span>
@@ -187,32 +217,22 @@ export default function TapeView({
         </div>
       </div>
 
-      <div className="tape-move-info">
-        {moveInfo && step > 0 ? (
-          <>
-            <span
-              key={`${step}-${lastMove}`}
-              className={`tape-move-badge ${moveInfo.className} tape-move-badge--animate`}
-            >
-              <span className="tape-move-badge__arrow" aria-hidden="true">
-                {moveInfo.arrow}
-              </span>
-              <span>
-                En el paso anterior el cabezal se movió hacia la{' '}
-                <strong>{moveInfo.text}</strong> ({moveInfo.short})
-              </span>
+      {moveInfo && step > 0 && (
+        <div className="tape-move-info">
+          <span
+            key={`${step}-${lastMove}`}
+            className={`tape-move-badge ${moveInfo.className} tape-move-badge--animate`}
+          >
+            <span className="tape-move-badge__arrow" aria-hidden="true">
+              {moveInfo.arrow}
             </span>
-            <span className="tape-move-hint">
-              Deslice la cinta si lo necesita; al ejecutar pasos, la vista sigue al cabezal.
+            <span>
+              En el paso anterior el cabezal se movió hacia la <strong>{moveInfo.text}</strong> (
+              {moveInfo.short})
             </span>
-          </>
-        ) : (
-          <span className="tape-move-hint">
-            El cabezal (▼) está en la posición <strong>{headIndex}</strong>. Las celdas con punto (·)
-            son blanco; al escribir la cadena, los símbolos sustituyen el blanco desde la posición 0.
           </span>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

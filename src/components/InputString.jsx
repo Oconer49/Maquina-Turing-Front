@@ -1,9 +1,14 @@
 import { AlphabetChips } from './TapeSymbol';
 
 /** Campo de texto para la cadena de entrada y chips del alfabeto Σ. */
-export default function InputString({ value, onChange, onSubmit, disabled, alphabetSymbols }) {
+export default function InputString({ value, onChange, onSubmit, disabled, alphabetSymbols, error }) {
   return (
-    <div className="field">
+    <div className="field field--input-string">
+      {error && (
+        <div className="error-banner error-banner--input" role="alert">
+          <strong>Error:</strong> {error}
+        </div>
+      )}
       <label htmlFor="input" className="input-label field-label-math">
         <span className="input-label-text">Cadena de entrada</span>
         {alphabetSymbols?.length > 0 && (

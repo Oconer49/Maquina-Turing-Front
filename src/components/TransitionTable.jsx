@@ -103,6 +103,12 @@ export default function TransitionTable({ machine, currentState }) {
           <span className="empty-set-symbol empty-set-symbol--caption">∅</span>
           <RichText text=" = celda sin regla" />
         </p>
+        {machine?.id === 'binary_palindrome' && (
+          <p className="table-caption table-caption--hint">
+            <strong>Palíndromo:</strong> q0 inicio · q1, q2, … ir al final de la cinta · q3a, q3b, …
+            comparar extremos · q4 volver a la izquierda · q<sub>accept</sub> / q<sub>reject</sub> finales.
+          </p>
+        )}
       </Box>
     </Box>
   );

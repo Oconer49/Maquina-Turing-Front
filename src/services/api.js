@@ -18,7 +18,7 @@ async function request(path, options = {}) {
 export const api = {
   health: () => request('/health'),
   listMachines: () => request('/machines'),
-  getMachine: (id) => request(`/machines/${id}`),
+  getMachine: (id, input) => request(`/machines/${id}${input != null ? `?input=${encodeURIComponent(input)}` : ''}`),
   createSimulation: (body) =>
     request('/simulations', { method: 'POST', body: JSON.stringify(body) }),
   getSimulation: (id) => request(`/simulations/${id}`),

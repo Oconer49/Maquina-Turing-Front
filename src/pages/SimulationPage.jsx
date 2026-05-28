@@ -20,6 +20,7 @@ export default function SimulationPage() {
   const [machineId, setMachineId] = useState('');
   const [machineDetail, setMachineDetail] = useState(null);
   const [input, setInput] = useState('');
+  const [syncedInput, setSyncedInput] = useState('');
   const [simulationId, setSimulationId] = useState(null);
   const [snapshot, setSnapshot] = useState(null);
   const [history, setHistory] = useState([]);
@@ -32,28 +33,18 @@ export default function SimulationPage() {
   const syncSeqRef = useRef(0);
 
   simulationIdRef.current = simulationId;
-
-  useEffect(() => {
-    api
-      .listMachines()
-      .then((list) => {
-        setMachines(list.filter((m) => m.id !== 'infinite_loop'));
-        if (list.length) setMachineId(list[0].id);
-      })
-      .catch((e) => setError(e.message));
-  }, []);
-
-  useEffect(() => {
-    if (!machineId) return;
-    api
-      .getMachine(machineId)
-      .then(setMachineDetail)
-      .catch((e) => setError(e.message));
-  }, [machineId]);
-
   const alphabetSymbols = machineDetail?.input_alphabet ?? [];
   const canStep = simulationId && snapshot?.status === 'RUNNING';
   const lastMove = snapshot?.applied_transition?.move;
+  const showPanels = Boolean(machineDetail);
+  const previewTape = showPanels && input !== syncedInput;
+  const isFinal = snapshot && FINISHED.has(snapshot.status);
+  const resultTitle =
+    snapshot?.status === 'ACCEPTED'
+      ? 'Por qué se aceptó'
+      : snapshot?.status === 'REJECTED'
+        ? 'Por qué se rechazó'
+        : 'Explicación';
 
   const applySnapshot = useCallback((snap, appendHistory = true) => {
     setSnapshot(snap);
@@ -70,7 +61,26 @@ export default function SimulationPage() {
     setIsRunning(false);
   }, []);
 
-  /** Sincroniza la simulación con la máquina y cadena actuales (paso 0). */
+  useEffect(() => {
+    api
+      .listMachines()
+      .then((list) => {
+        setMachines(list.filter((m) => m.id !== 'infinite_loop'));
+        if (list.length) setMachineId(list[0].id);
+      })
+      .catch((e) => setError(e.message));
+  }, []);
+
+  useEffect(() => {
+    if (!machineId) return;
+    setInput('');
+    setSyncedInput('');
+    api
+      .getMachine(machineId)
+      .then(setMachineDetail)
+      .catch((e) => setError(e.message));
+  }, [machineId]);
+
   const syncSimulation = useCallback(async () => {
     if (!machineId) return;
 
@@ -86,7 +96,14 @@ export default function SimulationPage() {
     try {
       const snap = await api.createSimulation({ machine_id: machineId, input });
       if (seq !== syncSeqRef.current) return;
+
+      if (machineId === 'binary_palindrome') {
+        const detail = await api.getMachine(machineId, input);
+        if (seq === syncSeqRef.current) setMachineDetail(detail);
+      }
+
       setSimulationId(snap.simulation_id);
+      setSyncedInput(input);
       applySnapshot(snap, false);
       setError(null);
     } catch (e) {
@@ -103,12 +120,9 @@ export default function SimulationPage() {
 
     const timer = setTimeout(() => {
       syncSimulation();
-    }, 450);
+    }, 200);
 
-    return () => {
-      clearTimeout(timer);
-      syncSeqRef.current += 1;
-    };
+    return () => clearTimeout(timer);
   }, [machineId, input, syncSimulation]);
 
   const handleStep = async () => {
@@ -178,108 +192,126 @@ export default function SimulationPage() {
         </p>
       </header>
 
-      {error && (
-        <div className="error-banner" role="alert">
-          <strong>Error:</strong> {error}
-        </div>
-      )}
-
       <SectionBlock
-        id="section-config"
-        title="1. Configuración"
-        description="Elija la máquina y escriba la cadena: la cinta y el estado se actualizan solos al cambiar la entrada."
+        id="section-simulator"
+        title="Simulador"
+        description="Elija la máquina y escriba la cadena: la simulación, la cinta y la tabla δ se actualizan automáticamente."
       >
-        <div className="row row--config">
-          <MachineSelector
-            machines={machines}
-            value={machineId}
-            onChange={setMachineId}
-            disabled={isRunning}
-          />
-          <InputString
-            value={input}
-            onChange={setInput}
-            onSubmit={syncSimulation}
-            disabled={isRunning}
-            alphabetSymbols={alphabetSymbols}
-          />
-        </div>
-        {machineDetail?.description && (
-          <p className="machine-description">
-            <span className="inline-label">Descripción del problema: </span>
-            <RichText text={machineDetail.description} />
-          </p>
-        )}
-        <MachineExamples
-          examples={machineDetail?.examples ?? machines.find((m) => m.id === machineId)?.examples}
-          onSelect={setInput}
-          disabled={isRunning}
-        />
-      </SectionBlock>
+        <div className="sim-layout">
+          <aside className="sim-layout__setup panel-inner">
+            <MachineSelector
+              machines={machines}
+              value={machineId}
+              onChange={setMachineId}
+              disabled={isRunning}
+            />
 
-      <SectionBlock
-        id="section-simulation"
-        title="2. Simulación en vivo"
-        description="Aquí ve la cinta (símbolos de Γ y cabezal), el estado de la máquina y la tabla δ con las reglas. La fila naranja es el estado actual."
-        className="section-simulation"
-      >
-        <div className="sim-workspace">
-          <div className="sim-paired">
-            <h3 className="sim-paired__heading">Estado de la máquina</h3>
-            <h3 id="delta-panel-title" className="sim-paired__heading">
-              Tabla de transiciones (<span className="math-greek">δ</span>)
-            </h3>
-            <div className="sim-paired__left">
-              <StatusPanel
-                snapshot={snapshot}
-                isRunning={isRunning}
-                isStepping={isStepping}
-                blank={machineDetail?.blank ?? '_'}
-              />
-              <div className="sim-tape-block">
-                <h3 className="sim-tape-block__title">
-                  Cinta (<span className="math-greek">Γ</span>) y cabezal de lectura/escritura
-                </h3>
-                <TapeView
-                  tape={snapshot?.tape}
-                  headIndex={snapshot?.head_index ?? 0}
-                  lastMove={lastMove}
-                  step={snapshot?.step ?? 0}
-                  blank={machineDetail?.blank ?? '_'}
-                  inputString={input}
-                  active={!!machineDetail}
-                />
-              </div>
-              <div className="sim-controls-block">
-                <h3 className="sim-controls-block__title">Controles de ejecución</h3>
-                <ControlPanel
-                  onRestart={syncSimulation}
-                  onStep={handleStep}
-                  onRun={handleRun}
-                  onPause={handlePause}
+            <InputString
+              value={input}
+              onChange={setInput}
+              onSubmit={syncSimulation}
+              disabled={isRunning}
+              alphabetSymbols={alphabetSymbols}
+              error={error}
+            />
+
+            {snapshot && (
+              <div className="sim-layout__status">
+                <StatusPanel
+                  snapshot={snapshot}
                   isRunning={isRunning}
-                  canStep={canStep}
-                  hasSimulation={!!simulationId}
-                  speed={speed}
-                  onSpeedChange={setSpeed}
+                  isStepping={isStepping}
+                  blank={machineDetail?.blank ?? '_'}
+                  layout="stacked"
+                  showResultMessage={false}
                 />
               </div>
-            </div>
-            <aside className="sim-workspace__delta panel-inner" aria-labelledby="delta-panel-title">
-              <TransitionTable machine={machineDetail} currentState={snapshot?.current_state} />
-            </aside>
+            )}
+
+            {machineDetail?.description && (
+              <p className="machine-description">
+                <span className="inline-label">Problema: </span>
+                <RichText text={machineDetail.description} />
+              </p>
+            )}
+
+            <MachineExamples
+              compact
+              examples={machineDetail?.examples ?? machines.find((m) => m.id === machineId)?.examples}
+              onSelect={setInput}
+              disabled={isRunning}
+            />
+          </aside>
+
+          <div className="sim-layout__run">
+            {showPanels ? (
+              <div className="sim-layout__viz">
+                <section className="sim-layout__tape panel-inner" aria-label="Cinta y cabezal">
+                  <h3 className="sim-layout__panel-title">
+                    Cinta (<span className="math-greek">Γ</span>) y cabezal
+                  </h3>
+                  {isFinal && snapshot.result_message && !previewTape && (
+                    <div className={`result-message result-message--above-tape status-${snapshot.status}`}>
+                      <span className="result-message__title">{resultTitle}</span>
+                      <div className="result-message__body">
+                        <RichText text={snapshot.result_message} />
+                      </div>
+                    </div>
+                  )}
+                  <TapeView
+                    tape={previewTape ? undefined : snapshot?.tape}
+                    headIndex={previewTape ? 0 : (snapshot?.head_index ?? 0)}
+                    lastMove={previewTape ? undefined : lastMove}
+                    step={previewTape ? 0 : (snapshot?.step ?? 0)}
+                    blank={machineDetail?.blank ?? '_'}
+                    inputString={input}
+                    active={showPanels}
+                  />
+                  {snapshot && (
+                    <ControlPanel
+                      compact
+                      onRestart={syncSimulation}
+                      onStep={handleStep}
+                      onRun={handleRun}
+                      onPause={handlePause}
+                      isRunning={isRunning}
+                      canStep={canStep}
+                      hasSimulation={!!simulationId}
+                      speed={speed}
+                      onSpeedChange={setSpeed}
+                    />
+                  )}
+                </section>
+
+                <section
+                  className="sim-layout__delta panel-inner"
+                  aria-labelledby="delta-panel-title"
+                >
+                  <h3 id="delta-panel-title" className="sim-layout__panel-title">
+                    Tabla de transiciones (<span className="math-greek">δ</span>)
+                  </h3>
+                  <TransitionTable machine={machineDetail} currentState={snapshot?.current_state} />
+                </section>
+              </div>
+            ) : (
+              <div className="sim-layout__placeholder panel-inner">
+                <p className="sim-layout__placeholder-text">Seleccione una máquina para comenzar.</p>
+              </div>
+            )}
           </div>
         </div>
       </SectionBlock>
 
-      <SectionBlock
-        id="section-history"
-        title="3. Historial de pasos"
-        description="Lista de cada paso ejecutado: estado alcanzado y transición δ aplicada (del más reciente al más antiguo)."
-        className="section-history"
-      >
-        <StepHistory history={history} blank={machineDetail?.blank ?? '_'} />
-      </SectionBlock>
+      {snapshot && (
+        <SectionBlock
+          id="section-history"
+          title="Historial de pasos"
+          description="Cada paso ejecutado: estado y transición δ aplicada."
+          className="section-history"
+        >
+          <StepHistory history={history} blank={machineDetail?.blank ?? '_'} />
+        </SectionBlock>
+      )}
     </div>
   );
 }
