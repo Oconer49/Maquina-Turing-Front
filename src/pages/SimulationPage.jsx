@@ -177,6 +177,25 @@ export default function SimulationPage() {
     runLoop();
   };
 
+  const handleRestart = async () => {
+    if (!machineId) return;
+    setError(null);
+    stopAutoRun();
+    setHistory([]);
+
+    if (!simulationId || input !== syncedInput) {
+      await syncSimulation();
+      return;
+    }
+
+    try {
+      const snap = await api.reset(simulationId);
+      applySnapshot(snap, false);
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
   useEffect(() => {
     return () => {
       if (runRef.current?.timer) clearTimeout(runRef.current.timer);
@@ -274,7 +293,7 @@ export default function SimulationPage() {
                   {snapshot && (
                     <ControlPanel
                       compact
-                      onRestart={syncSimulation}
+                      onRestart={handleRestart}
                       onStep={handleStep}
                       onRun={handleRun}
                       onPause={handlePause}

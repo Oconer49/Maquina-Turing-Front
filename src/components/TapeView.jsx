@@ -8,6 +8,41 @@ const MOVE_LABELS = {
 
 const RANGE_PAD = 2;
 
+/** Índice donde se escribió en el paso anterior (cabezal actual + movimiento inverso). */
+function writeIndexForStep(headIndex, move) {
+  if (move === 'L') return headIndex + 1;
+  if (move === 'R') return headIndex - 1;
+  return headIndex;
+}
+
+function buildTapeMap(inputString, tape) {
+  const map = new Map();
+  if (tape?.length) {
+    for (const c of tape) {
+      map.set(c.index, c.symbol);
+    }
+    return map;
+  }
+  if (inputString) {
+    for (let i = 0; i < inputString.length; i += 1) {
+      map.set(i, inputString[i]);
+    }
+  }
+  return map;
+}
+
+function viewRangeFromSnapshot(tape, map, headIndex, inputString) {
+  if (tape?.length) {
+    const indices = tape.map((c) => c.index);
+    return { lo: Math.min(...indices), hi: Math.max(...indices) };
+  }
+  const keys = [...map.keys()];
+  const lo = Math.min(headIndex, ...(keys.length ? keys : [0])) - RANGE_PAD;
+  const hi =
+    Math.max(headIndex, ...(keys.length ? keys : [Math.max(0, inputString.length - 1)])) + RANGE_PAD;
+  return { lo, hi };
+}
+
 /** Cinta con celdas en blanco que llenan el ancho; la cadena sustituye blancos en 0…n-1. */
 export default function TapeView({
   tape,
@@ -20,72 +55,57 @@ export default function TapeView({
 }) {
   const containerRef = useRef(null);
   const rowRef = useRef(null);
-  const tapeMapRef = useRef(new Map());
-  const [range, setRange] = useState(() => ({ lo: 0, hi: 10 }));
-  const prevSymbolsRef = useRef({});
+  const [viewRange, setViewRange] = useState({ lo: 0, hi: 10 });
   const [headCenterX, setHeadCenterX] = useState(0);
   const [headReady, setHeadReady] = useState(false);
-  const [flashIndices, setFlashIndices] = useState(() => new Set());
+  const [flashIndex, setFlashIndex] = useState(null);
   const [stepPulse, setStepPulse] = useState(false);
 
   const moveInfo = lastMove ? MOVE_LABELS[lastMove] : null;
 
-  useEffect(() => {
-    if (!active) return;
-
-    const map = tapeMapRef.current;
-    map.clear();
-
-    if (step === 0 && inputString) {
-      for (let i = 0; i < inputString.length; i += 1) {
-        map.set(i, inputString[i]);
-      }
-    }
-
-    if (tape?.length) {
-      for (const c of tape) map.set(c.index, c.symbol);
-    }
-
-    const keys = [...map.keys()];
-    const lo = Math.min(headIndex, ...(keys.length ? keys : [0])) - RANGE_PAD;
-    const hi = Math.max(headIndex, ...(keys.length ? keys : [Math.max(0, inputString.length - 1)])) + RANGE_PAD;
-    setRange({ lo, hi });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, tape, step === 0 ? inputString : '', headIndex]);
+  const tapeMap = useMemo(() => buildTapeMap(inputString, tape), [inputString, tape]);
 
   useEffect(() => {
     if (!active) return;
-    const map = tapeMapRef.current;
-    if (tape?.length) {
-      for (const c of tape) map.set(c.index, c.symbol);
-    }
-    setRange((prev) => {
-      const lo = Math.min(prev.lo, headIndex - RANGE_PAD);
-      const hi = Math.max(prev.hi, headIndex + RANGE_PAD);
-      return lo === prev.lo && hi === prev.hi ? prev : { lo, hi };
-    });
-  }, [active, tape, headIndex]);
+    setViewRange(viewRangeFromSnapshot(tape, tapeMap, headIndex, inputString));
+  }, [active, tape, tapeMap, headIndex, inputString]);
 
   const displayTape = useMemo(() => {
     if (!active) return [];
-    const map = tapeMapRef.current;
     const cells = [];
-    for (let i = range.lo; i <= range.hi; i += 1) {
-      cells.push({ index: i, symbol: map.has(i) ? map.get(i) : blank });
+    for (let i = viewRange.lo; i <= viewRange.hi; i += 1) {
+      cells.push({
+        index: i,
+        symbol: tapeMap.has(i) ? tapeMap.get(i) : blank,
+      });
     }
     return cells;
-  }, [active, range.lo, range.hi, blank]);
+  }, [active, tapeMap, viewRange.lo, viewRange.hi, blank]);
+
+  const writtenIndex = step > 0 && lastMove ? writeIndexForStep(headIndex, lastMove) : null;
+
+  useEffect(() => {
+    if (step === 0 || writtenIndex == null) {
+      setFlashIndex(null);
+      return undefined;
+    }
+    setFlashIndex(writtenIndex);
+    const t = setTimeout(() => setFlashIndex(null), 500);
+    return () => clearTimeout(t);
+  }, [step, writtenIndex]);
 
   const updateHeadPosition = useCallback(() => {
     const row = rowRef.current;
-    if (!row || headIndex == null) return;
+    const wrap = row?.parentElement;
+    if (!row || !wrap || headIndex == null) return;
     const cell = row.querySelector(`[data-tape-index="${headIndex}"]`);
     if (!cell) return;
-    setHeadCenterX(cell.offsetLeft + cell.offsetWidth / 2);
+    const wrapRect = wrap.getBoundingClientRect();
+    const cellRect = cell.getBoundingClientRect();
+    setHeadCenterX(cellRect.left - wrapRect.left + cellRect.width / 2);
     setHeadReady(true);
   }, [headIndex]);
 
-  // Mantiene el cabezal visible sin forzarlo al centro (evita efecto "cabezal fijo").
   const scrollHeadIntoView = useCallback(() => {
     const container = containerRef.current;
     const cell = rowRef.current?.querySelector(`[data-tape-index="${headIndex}"]`);
@@ -108,7 +128,7 @@ export default function TapeView({
   useLayoutEffect(() => {
     updateHeadPosition();
     scrollHeadIntoView();
-  }, [updateHeadPosition, scrollHeadIntoView, displayTape]);
+  }, [updateHeadPosition, scrollHeadIntoView, displayTape, headIndex]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -122,26 +142,7 @@ export default function TapeView({
   }, [updateHeadPosition, scrollHeadIntoView]);
 
   useEffect(() => {
-    if (!displayTape?.length || step === 0) return;
-
-    const nextFlash = new Set();
-    for (const cell of displayTape) {
-      const prev = prevSymbolsRef.current[cell.index];
-      if (prev !== undefined && prev !== cell.symbol) {
-        nextFlash.add(cell.index);
-      }
-      prevSymbolsRef.current[cell.index] = cell.symbol;
-    }
-
-    if (nextFlash.size > 0) {
-      setFlashIndices(nextFlash);
-      const t = setTimeout(() => setFlashIndices(new Set()), 500);
-      return () => clearTimeout(t);
-    }
-  }, [displayTape, step]);
-
-  useEffect(() => {
-    if (step === 0) return;
+    if (step <= 1) return;
     setStepPulse(true);
     const t = setTimeout(() => setStepPulse(false), 400);
     return () => clearTimeout(t);
@@ -188,7 +189,7 @@ export default function TapeView({
           <div ref={rowRef} className="tape-row">
             {displayTape.map((cell) => {
               const isHead = cell.index === headIndex;
-              const isFlash = flashIndices.has(cell.index);
+              const isFlash = flashIndex === cell.index;
               const isBlank = cell.symbol === blank;
               return (
                 <div
@@ -217,8 +218,8 @@ export default function TapeView({
         </div>
       </div>
 
-      {moveInfo && step > 0 && (
-        <div className="tape-move-info">
+      <div className="tape-move-info" aria-live="polite">
+        {moveInfo && step > 0 ? (
           <span
             key={`${step}-${lastMove}`}
             className={`tape-move-badge ${moveInfo.className} tape-move-badge--animate`}
@@ -229,10 +230,18 @@ export default function TapeView({
             <span>
               En el paso anterior el cabezal se movió hacia la <strong>{moveInfo.text}</strong> (
               {moveInfo.short})
+              {writtenIndex != null && (
+                <>
+                  {' '}
+                  · escritura en celda <strong>{writtenIndex}</strong>
+                </>
+              )}
             </span>
           </span>
-        </div>
-      )}
+        ) : (
+          <span className="tape-move-info__placeholder">Listo para el primer paso</span>
+        )}
+      </div>
     </div>
   );
 }
